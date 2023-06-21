@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Uaine - An interactive Irish learning website</title>
+  </head>
+  <body>
+    <style>
+            body {
+                overflow: hidden;
+                /* Hide scrollbars */
+                background: #dad7cd;
+                color:#344e41;
+            }
+
+            .hidden {
+                display: none !important;
+            }
+
+            #onhover {
+                background-color: rgba(0, 0, 0, 0.9);
+                color: rgb(200, 200, 200);
+                font-family: 'Courier New', Courier, monospace;
+                word-wrap: normal;
+                width: auto;
+                max-width: 400px;
+                position: absolute;
+                z-index: 1;
+                padding: 10px;
+                cursor: default;
+            }
+            .world-select {
+                max-width: 940px;
+                width: 100%;
+                left:0;
+                right:0;
+                min-width: 300px;
+                height: calc(100vh - 220px);
+                position: absolute;
+                bottom: 120px;
+                overflow-y: auto;
+                background-color: RGBA(0, 0, 0, 0.6);
+                justify-content: center;
+                margin: 0 auto;
+            }
+            .blog {
+                max-width: 800px;
+                width: 100%;
+                left:0;
+                right:0;
+                min-width: 300px;
+                height: calc(100% - 100px);
+                padding: 10px;
+                position: absolute;
+                bottom: 70px;
+                overflow-y: auto;
+                background-color: lightgray;
+                justify-content: center;
+                margin: 0 auto;
+            }
+            input[type=text],textarea {
+                background-color: black;
+                caret-color: white;
+                border: none;
+                border-bottom: 4px solid #588157;
+                color: white;
+                font-size: 24px;
+                padding-left: 12px;
+            }
+            input[type=text]:focus,textarea:focus {
+                border-bottom: 4px solid lightgray;
+                outline: none;
+            }
+            textarea {
+                width: 80vw;
+                max-width: 87%;
+                height: 200px;
+                position: relative;
+                top: 150px;
+                resize: none;
+                display: block;
+                z-index: 1;
+                margin: auto;
+            }
+            .header {
+                max-width: 940px;
+                width: 100%;
+                margin: 0 auto;
+            }
+            #boxcentretop {
+                z-index: 1;
+                width: 80vw;
+                max-width: 400px;
+                height: 50px;
+                position: relative;
+                top: 30px;
+                display: block;
+            }
+            #optionboxcentretop {
+                z-index: 1;
+                width: 80vw;
+                max-width: 87%;
+                margin: 0 auto;
+                height: 50px;
+                position: relative;
+                top: 300px;
+                display: block;
+            }
+            .world {
+                background: RGBA(71, 77, 61, 0.6);
+                max-width: 900px;
+                width: 90%;
+                height: auto;
+                font-size: 18px;
+                font-family: 'Courier New', Courier, monospace;
+                color: rgb(180, 180, 180);
+                margin: 0 auto;
+                margin-top: 15px;
+                padding: 15px;
+                margin-bottom: 20px;
+                cursor: pointer;
+            }
+            .selected {
+                border: 3px solid #dad7cd;
+                padding: 12px;
+            }
+            ::-webkit-scrollbar {
+                width: 10px;
+            }
+
+            
+            /* Handle */
+            ::-webkit-scrollbar-thumb {
+                background: #888; 
+            }
+
+            /* Handle on hover */
+            ::-webkit-scrollbar-thumb:hover {
+                background: #555; 
+            }
+    </style>
+    <div class="header">
+      <input type="text" id="boxcentretop" spellcheck="false" />
+      <input type="text" class="hidden" id="optionboxcentretop" spellcheck="false" />
+      <textarea rows="4" class="hidden" placeholder="content" cols="50" id="textarea"></textarea>
+    </div>
+    <canvas
+      id="content"
+      width="600"
+      height="1000"
+      style="position: absolute; top: 0px; left: 0px"
+    ></canvas>
+    <div class="blog hidden" id="blog"></div>
+    <div class="world-select" id="worlds"></div>
+    <div id="onhover" class="hidden"></div>
+    <script>
+window.canvas = document.getElementById("content");
+window.ctx = window.canvas.getContext("2d");
+window.hoverbox = document.getElementById("onhover");
+window.cards = document.getElementById("worlds");
+window.textarea = document.getElementById("textarea");
+window.blog = document.getElementById("blog");
+window.boxcentretop = document.getElementById("boxcentretop");
+window.optionboxcentretop = document.getElementById("optionboxcentretop");
+window.canvas.width = window.innerWidth;
+window.canvas.height = window.innerHeight;
+ctx.imageSmoothingEnabled = false;
+
+let hoverBox = false;
+let boxHoverText = "";
+let selectedPost = 0;
+let currentQuestion = 0;
+let editMode = false;
+let maxMakeQuestion = 1;
+let makeQuestionData = [];
+let makeAnswerData = [];
+let generated = [];
+let makeCurrentQuestion = 0;
+let mouseX, mouseY, mouseDown
+let locked = false;
+let keyCode
+let rating = 0
+let newPostTitle,newPostContent
+let width = window.innerWidth
+let height = window.innerHeight
+let currentPage = "home page";
+let selectedBadges = [];
+let selectedTags = [];
+let wrongQuestions = [];
+let globalMistakes = [];
+let backupData = [];
+let previousPage = currentPage;
+let mistakesQ = [], mistakesA = [], mistakesO = [];
+let mistakes = [{}];
+let correct = [];
+let revise = false;
+const difficulties = ["Baby steps", "Éasca Péasca", "Medium", "Hard", "Basically Fluent"];
+
+const results = [
+    "Read the question next time",
+    "Were you confused?",
+    "You did Pretty good!",
+    "You did Pretty good!",
+    "WOW!",
+    "PERFECT",
+];
+const tags = [
+  "Vocab",
+  "Grammar",
+  "Verbs",
+  "Nouns",
+  "Delete"
+]
+const tools = [
+  {
+    "title": "𝐛𝐨𝐥𝐝",
+    "txt": "<b></b>"
+  },
+  {
+    "title": "𝑖𝑡𝑎𝑙𝑖𝑐",
+    "txt": "<i></i>"
+  },
+  {
+    "title": "h1",
+    "txt": "<h1></h1>"
+  },
+  {
+    "title": "h2",
+    "txt": "<h2></h2>"
+  },
+  {
+    "title": "h3",
+    "txt": "<h3></h3>"
+  },
+  {
+    "title": "h4",
+    "txt": "<h4></h4>"
+  },
+  {
+    "title": "p",
+    "txt": "<p></p>"
+  }
+]
+var postData;
+var questionData;
+fetch("https://uaine.glitch.me/posts").then(r => r.json()).then(async data => {
+    postData = data;
+    var init = await Website()
+})
+fetch("https://uaine.glitch.me/quiz").then(r => r.json()).then(async data => {
+    backupData = data;
+    questionData = data;
+})
+if(localStorage.getItem("genID")){
+  generated = JSON.parse(localStorage.getItem("genID"))
+}
+if(localStorage.getItem("mistakes")){
+  mistakes = JSON.parse(localStorage.getItem("mistakes"))
+  mistakesQ = mistakes[0].question
+  mistakesA = mistakes[0].answers
+  mistakesO = mistakes[0].options
+} else {
+  mistakes[0].question = []
+  mistakes[0].answers = []
+  mistakes[0].options = []
+}
+async function Website() {
+
+    let drawPage = {
+        "home page": () => {},
+        "blog": () => {},
+        "quiz": () => {},
+        "results": () => {},
+        "creation page": () => {},
+        "make quiz": () => {}
+    }
+
+    let html = {
+        "home page": {
+            enter: [window.cards, window.boxcentretop],
+            exit: [window.cards, window.boxcentretop],
+            onenter: () => {
+                window.boxcentretop.style.margin = "0px";
+                window.boxcentretop.style.top = "30px";
+                window.boxcentretop.style.maxWidth = "400px";
+                window.boxcentretop.placeholder = "Search"
+                deselect()
+                selectedPost = 0
+            },
+            onexit: () => {
+                window.boxcentretop.onmousedown = null
+            }
+        },
+        "blog": {
+            enter: [window.blog],
+            exit: [window.blog],
+            onenter: () => {
+                window.blog.innerHTML = "";
+                window.blog.innerHTML += "<h1>" + postData[selectedPost - 1].title + "</h1>"
+                window.blog.innerHTML += postData[selectedPost - 1].content;
+            }
+        },
+        "creation page": {
+            enter: [window.boxcentretop, window.textarea, window.optionboxcentretop],
+            exit: [window.boxcentretop, window.textarea, window.optionboxcentretop],
+            onenter: () => {
+                window.boxcentretop.style.margin = "auto";
+                window.boxcentretop.style.top = "130px";
+                window.optionboxcentretop.style.top = "140px";
+                window.boxcentretop.style.maxWidth = "87%";              
+                window.optionboxcentretop.placeholder = "Short Description";
+                window.boxcentretop.placeholder = "Title"
+                window.boxcentretop.value = ""
+                if(editMode) {
+                  window.boxcentretop.value = postData[selectedPost - 1].title
+                  window.optionboxcentretop.value = postData[selectedPost - 1].excerpt
+                  window.textarea.value = postData[selectedPost - 1].content
+                  makeAnswerData = questionData[selectedPost - 1].answers
+                  makeQuestionData = questionData[selectedPost - 1].question
+                  maxMakeQuestion = questionData[selectedPost - 1].question.length
+                  selectedTags = postData[selectedPost - 1].tag
+                }
+            },
+            onexit: () => {
+                window.boxcentretop.onmousedown = null
+            }
+        },
+        "make quiz": {
+            enter: [window.boxcentretop, window.optionboxcentretop],
+            exit: [window.boxcentretop, window.optionboxcentretop],
+            onenter: () => {
+                window.boxcentretop.placeholder = "Question";
+                window.optionboxcentretop.placeholder = "Answer";
+                window.boxcentretop.value = ""
+            },
+            onexit: () => {
+                window.boxcentretop.onmousedown = null
+            }
+        }
+    }
+    // The different pages
+
+    drawPage["home page"] = () => {
+        fill(35, 51, 34)
+        rect(0, 0, 1000, height, "centre");
+        fill(150)
+    }
+    drawPage["blog"] = () => {
+        fill(200)
+        rect(0, 0, 900, height, "centre");
+    }
+    drawPage["quiz"] = () => {
+        fill(200)
+        rect(0, 0, 900, height, "centre");
+        textSize(100);
+        fill(20)
+        textSize(16);
+        ctx.textAlign = "left"
+        text((currentQuestion + 1) + "/" + questionData[selectedPost - 1].question.length, width / 2 - 360, height / 2 - 30, 12);
+        textSize(36);
+        text(questionData[selectedPost - 1].question[currentQuestion], width / 2 - 360, height / 2 + 30, 12);
+    }
+    drawPage["results"] = () => {
+        fill(200)
+        rect(0, 0, 900, height, "centre");
+        fill(20)
+        textSize(43);
+        ctx.textAlign = 'center';
+        text(createMessage(), width / 2, height / 2 - 30, 12);
+        textSize(20);
+        text((questionData[selectedPost - 1].question.length - wrongQuestions.length) + "/" + questionData[selectedPost - 1].question.length, width / 2, height / 2, 12);
+    }
+    drawPage["creation page"] = () => {
+        fill(35, 51, 34)
+        rect(0, 0, 900, height, "centre");
+        fill(255)
+        textSize(43);
+        ctx.textAlign = 'center';
+        if(editMode) {
+          text("Edit '" + postData[selectedPost-1].title + "'", width / 2, 100, 12);
+        } else {
+          text("Create a new post", width / 2, 100, 12);
+        }
+        textSize(20);
+        text("Word count:"+window.textarea.value.trim().split(/\s+/).length+"\nLetter Count:" + window.textarea.value.length, width / 2 + 350, height/2 - 260, 30);
+        text("Tags:", width / 2 - 380, height - 150, 30);
+    }
+    drawPage["make quiz"] = () => {
+        fill(35, 51, 34)
+        rect(0, 0, 900, height, "centre");
+        fill(255)
+        textSize(43);
+        ctx.textAlign = 'center';
+        text("Make Quiz", width / 2, 100, 12);
+        textSize(20);
+        text("Current question:"+(makeCurrentQuestion + 1)+"/" + maxMakeQuestion +"\n Difficulty for quiz: " + rating, width / 2, height/2 -70, 40);
+    }
+    
+    function createPost(name, id, excerpt, difficulty, tag, addedbadges) {
+        let div = document.createElement("div")
+        div.className = "world"
+        div.onclick = () => {
+            deselect()
+            div.classList.add("selected")
+            selectedPost = id + 1
+            Button.draw();
+        }
+        div.onmouseover = () => {
+            if (excerpt != "") {
+                hoverBox = true;
+                boxHoverText = excerpt;
+            }
+        }
+        div.onmouseout = () => {
+            hoverBox = false
+        }
+        let br = "<br>"
+        div.id = id
+        badges = ""
+        if(addedbadges.includes('Locked')){
+          badges += "🔒" 
+        }
+        if(addedbadges.includes("Medal")) {
+          badges += "🏅"
+        }
+
+        div.innerHTML = "<strong>" + sanitize(name) + "</strong>" + br
+        if (difficulty) {
+          let diff = ""
+          if (difficulty == 0) {
+            diff = ""
+          } else {
+            diff = difficulties[difficulty - 1]
+          }
+          div.innerHTML += "<span style='float: right'>"+badges+" " + diff + "</span>" + br
+        }
+        if(tag != undefined) {
+          div.innerHTML += "<span>" + tag + "</span>" + br
+        } else {
+          div.innerHTML += "<span>No tags</span>" + br
+        }
+        window.cards.appendChild(div)
+    }
+
+
+    function shuffle(array) {
+        let currentIndex = array.length,
+            randomIndex;
+
+        // While there remain elements to shuffle.
+        while (currentIndex != 0) {
+
+            // Pick a remaining element.
+            randomIndex = Math.floor(Math.random() * currentIndex);
+            currentIndex--;
+
+            // And swap it with the current element.
+            [array[currentIndex], array[randomIndex]] = [
+                array[randomIndex], array[currentIndex]
+            ];
+        }
+
+        return array;
+    }
+    let generateId = () => "" + Date.now() + (Math.random() * 1000000 | 0)
+    const deselect = () => {
+        let elem = document.getElementsByClassName("selected")
+        if (elem && elem[0]) {
+            elem[0].classList.remove("selected")
+        }
+    }
+    function createMessage() {
+        var current = 1;
+        var ratio = 1 / (results.length - 1);
+        var data = wrongQuestions.length / questionData[selectedPost - 1].question.length;
+        var txt = "";
+        if(wrongQuestions.length == questionData[selectedPost - 1].question.length) {
+          txt = "There's still time for redemption!"
+        } else {
+          for (var i = 0; i <= results.length; i++) {
+              if(data < current && data >= current - ratio) {
+                  let rgb = (255 / (results.length)) * i;
+                  fill(rgb,120,rgb/2)
+                  txt = results[i]
+              }
+              current -= ratio;
+          }
+        }
+        return txt
+    }
+        
+    function initButtons() {
+        Button.all = []
+        window.cards.innerHTML = "";
+        if (currentPage == "home page") {
+            for (var i = 0; i < postData.length; i++) {
+                let string = postData[i].title + postData[i].excerpt
+                if(postData[i].tag) {
+                  string += postData[i].tag.join(",")
+                }
+                if (string.toLowerCase().includes(boxcentretop.value.toLowerCase())) {
+                    createPost(postData[i].title, postData.indexOf(postData[i]), postData[i].excerpt, postData[i].difficulty, postData[i].tag, postData[i].badges)
+                } else {
+                    if (document.getElementById(postData.indexOf(postData[i]))) {
+                        window.cards.removeChild(document.getElementById(postData.indexOf(postData[i])))
+                    }
+                    hoverBox = false;
+                    createHoverBox();
+                    selectedPost = 0;
+                }
+            }
+        }
+        let w4 = Math.min(width / 4 - 10, 220)
+        let x4 = w4 / 2 + 5
+        let w2 = Math.min(width / 2 - 10, 450)
+        let x2 = w2 / 2 + 5
+        let mid = width / 2
+        Button.add(mid + 3 * x4, height - 30, w4, 40, "Edit", "home page", () => {
+            editMode = true;
+            changePage("creation page")
+        }, () => {
+            var selectable = false
+
+            if(selectedPost && postData[selectedPost - 1].badges.includes("Locked")) {
+              selectable = true
+            }
+            if(!selectedPost) {
+              selectable = true
+            }
+            return selectable
+        })
+        Button.add(mid + x4, height - 30, w4, 40, "Test", "home page", () => changePage("quiz"), () => {
+            if (selectedPost && questionData[selectedPost - 1].question.length > 1) {
+                return false
+            } else {
+              return true
+            }
+        })
+        Button.add(mid - x4, height - 30, w4, 40, "Delete", "home page", () => {
+            if (selectedPost && generated.includes(postData[selectedPost - 1].id)) {
+              fetch("https://uaine.glitch.me/delete", {
+                  method: "POST",
+                  body: JSON.stringify({
+                    selectedID:(selectedPost - 1),
+                  }),
+                  credentials: 'include'
+                })
+                
+                window.worlds.removeChild(document.getElementById(selectedPost - 1))
+                location.reload();
+            }
+        }, () => {
+          if (selectedPost && generated.includes(postData[selectedPost - 1].id)) {
+            return false
+          } else {
+            return true
+          }
+        })
+        Button.add(mid - 3 * x4, height - 30, w4, 40, "Revise", "home page", () => {
+          questionData = mistakes
+          revise = true;
+          selectedPost = 1
+          changePage("quiz")
+        }, () => {
+          if(mistakes[0].question && mistakes[0].question.length != 0) {
+            return false
+          } else {
+            return true
+          }
+        })
+        Button.add(mid + x2, height - 75, w2, 40, "Read selected article", "home page", () => changePage("blog"), () => !selectedPost)
+        Button.add(mid - x2, height - 75, w2, 40, "Create Post", "home page", () => changePage("creation page"))
+        Button.add(mid - x2, height - 30, 340, 40, "Back", "blog", () => changePage("home page"))
+        Button.add(mid + x2, height - 30, 340, 40, "Take Quiz", "blog", () => {
+            wrongQuestions = []
+            changePage("quiz")
+        }, () => {
+            var selectable = true
+            if (selectedPost && questionData[selectedPost - 1].question) {
+                selectable = false
+            }
+            if (selectedPost && questionData[selectedPost - 1].question.length < 1) {
+                selectable = true
+            }
+            return selectable
+        })
+        Button.add(mid - 120, height / 2 + 130, 200, 40, "Play Again", "results", () => {
+            wrongQuestions = [];
+            correct = [];
+            if(correct.length > 1) {
+              for(var i = 0; i < correct.length; i++) {
+                mistakes[0].answers.splice(correct[i], 1)
+                mistakes[0].question.splice(correct[i], 1)
+                if(mistakes[0].options[i]) {
+                  mistakes[0].options.splice(correct[i], 1)
+                }
+              }
+            }  
+            changePage("quiz");
+          
+        }, () => {
+          if(wrongQuestions.length == 0 && revise) {
+            return true
+          } else {
+            return false
+          }
+        })
+        Button.add(mid + 120, height / 2 + 130, 200, 40, "Next", "results", () => {
+            if(correct.length > 1) {
+              for(var i = 0; i < correct.length; i++) {
+                mistakes[0].answers.splice(correct[i], 1)
+                mistakes[0].question.splice(correct[i], 1)
+                if(mistakes[0].options[i]) {
+                  mistakes[0].options.splice(correct[i], 1)
+                }
+              }
+            }
+            if(wrongQuestions.length == 0 && revise) {
+              mistakes[0].answers = []
+              mistakes[0].question = []
+              mistakes[0].options = []
+            }
+            wrongQuestions = [];
+            correct = [];
+            questionData = backupData;
+            revise = false;
+            localStorage.setItem("mistakes", JSON.stringify(mistakes))
+            changePage("home page")
+        })
+        for(var i = 0; i < tags.length; i++) {
+          addBtn(i, tags)
+        }
+        for(var i = 0; i < tools.length; i++) {
+          addBtn(i, tools)
+        }
+        
+        Button.add(width / 2 + 107, height -50, 200, 40, "Lock Article", "creation page", () => {
+          locked = true;
+          selectedBadges.push("Locked");
+        }, () => {
+          let selectable = true
+          if(editMode) {
+            if (generated.includes(postData[selectedPost - 1].id)) {
+              selectable = false
+            }
+            if(locked == true){
+              selectable = true
+            }
+          } else if(locked == true){
+            selectable = true
+          }else {
+            selectable = false
+          }
+          return selectable;
+        })
+        let quiztext = "Add quiz"
+        if(editMode) {
+          quiztext = "Edit Quiz"
+        } else {
+          quiztext = "Add quiz"
+        }
+        Button.add(width / 2 - 107, height - 50, 200, 40, quiztext, "creation page", () => {
+          newPostTitle = window.boxcentretop.value;
+          newExcerpt = window.optionboxcentretop.value;
+          changePage("make quiz");
+          if (makeQuestionData.length > 0) {
+            window.boxcentretop.value = makeQuestionData[makeCurrentQuestion]
+            window.optionboxcentretop.value = makeAnswerData[makeCurrentQuestion]
+          } else {
+            window.boxcentretop.value = "";
+            window.optionboxcentretop.value = "";
+          }
+        })
+        Button.add(mid - 320, height - 50, 200, 40, "Back", "creation page", () => {
+            if(!window.textarea.value || maxMakeQuestion == 1 ||confirm("You have unsaved work. Do you wish to go back?")) {
+                editMode = false;
+                locked = false;
+                window.boxcentretop.value = "";
+                window.optionboxcentretop.value = "";
+                window.textarea.value = "";
+                rating = 0;
+                changePage("home page");
+            }
+        })
+        Button.add(mid + 320, height - 50, 200, 40, "Submit", "creation page", () => {
+            if(window.textarea.value.trim().split(/\s+/).length >= 50 && window.textarea.value.trim().split(/\s+/).length < 4000) {
+              newPostTitle = window.boxcentretop.value
+              newPostContent = window.textarea.value
+              newExcerpt = window.optionboxcentretop.value
+              let genId = generateId()
+              generated.push(genId);
+              localStorage.setItem("genID", JSON.stringify(generated));
+              if(editMode) {
+                fetch("https://uaine.glitch.me/edit?post", {
+                  method: "POST",
+                  body: JSON.stringify({
+                    title:newPostTitle,
+                    content:newPostContent,
+                    excerpt:newExcerpt,
+                    id:genId,
+                    difficulty: rating,
+                    badges:selectedBadges,
+                    difficulty: 2,
+                    tags: selectedTags,
+                    selectedID:(selectedPost-1),
+                  }),
+                  credentials: 'include'
+                })
+                fetch("https://uaine.glitch.me/edit?question", {
+                  method: "POST",
+                  body: JSON.stringify({
+                    question:makeQuestionData,
+                    options:[],
+                    answers:makeAnswerData,
+                    selectedID:(selectedPost-1),
+                  }),
+                  credentials: 'include'
+                })
+              } else {
+                fetch("https://uaine.glitch.me/submit?post", {
+                  method: "POST",
+                  body: JSON.stringify({
+                    title:newPostTitle,
+                    content:newPostContent,
+                    excerpt:newExcerpt,
+                    difficulty: rating,
+                    badges:selectedBadges,
+                    tag: selectedTags,
+                    id:genId
+                  }),
+                  credentials: 'include'
+                })
+                fetch("https://uaine.glitch.me/submit?question", {
+                  method: "POST",
+                  body: JSON.stringify({
+                    question:makeQuestionData,
+                    options:[],
+                    answers:makeAnswerData
+                  }),
+                  credentials: 'include'
+                }) 
+              }
+              location.reload();
+            } else {
+                alert("The content needs to be more than 50 words and less than 4000 words long")
+            }
+        })
+        Button.add(mid - 220, height / 2 + 130, 200, 40, "◀ Previous", "make quiz", () => {
+          
+            if(window.boxcentretop.value != makeQuestionData[makeCurrentQuestion]) {
+              makeQuestionData[makeCurrentQuestion] = window.boxcentretop.value
+            }
+            if(window.optionboxcentretop.value != makeAnswerData[makeCurrentQuestion]) {
+              makeAnswerData[makeCurrentQuestion] = window.optionboxcentretop.value
+            }
+            makeCurrentQuestion -= 1;
+
+            if(makeQuestionData != []) {
+              window.boxcentretop.value = makeQuestionData[makeCurrentQuestion]
+            }
+            if(makeAnswerData != []) {
+              window.optionboxcentretop.value = makeAnswerData[makeCurrentQuestion]
+            }
+            
+        }, () => {
+          if(makeCurrentQuestion == 0) {
+            return true
+          } else {
+            return false
+          }
+        })
+        Button.add(mid, height / 2 + 130, 200, 40, "🗑️Delete", "make quiz", () => {
+            if(makeCurrentQuestion == maxMakeQuestion - 1) {
+              makeCurrentQuestion -= 1;
+              window.boxcentretop.value = makeQuestionData[makeCurrentQuestion]
+              window.optionboxcentretop.value = makeAnswerData[makeCurrentQuestion]
+            }
+            maxMakeQuestion -= 1;
+        }, () => {
+          if(makeCurrentQuestion == 0 && maxMakeQuestion == 1) {
+            return true
+          } else {
+            return false
+          }
+        })
+        Button.add(mid + 220, height / 2 + 130, 200, 40, "Next ▶", "make quiz", () => {
+            makeCurrentQuestion += 1;
+            if(window.boxcentretop.value != makeQuestionData[makeCurrentQuestion]) {
+              makeQuestionData[makeCurrentQuestion - 1] = window.boxcentretop.value
+            }
+            if(window.optionboxcentretop.value != makeAnswerData[makeCurrentQuestion]) {
+              makeAnswerData[makeCurrentQuestion - 1] = window.optionboxcentretop.value
+            }
+            if ((makeCurrentQuestion + 1) > maxMakeQuestion) {
+              makeQuestionData.push(window.boxcentretop.value)
+              makeAnswerData.push(window.optionboxcentretop.value)
+              maxMakeQuestion += 1;
+              window.boxcentretop.value = "";
+              window.optionboxcentretop.value = "";
+            } else {
+              window.boxcentretop.value = makeQuestionData[makeCurrentQuestion]
+              window.optionboxcentretop.value = makeAnswerData[makeCurrentQuestion]
+            }
+        })
+        for(var i = 0; i < difficulties.length; i++) {
+          addBtn(i, difficulties)
+        }
+        Button.add(mid - 170, height - 170, 300, 40, "Back", "make quiz", () => {
+            if (maxMakeQuestion < 2 || confirm("You have unsaved progress. Do you still want to go back?")) {
+              makeQuestionData = []
+              makeAnswerData = []
+              maxMakeQuestion = 1
+              makeCurrentQuestion = 0;
+              changePage("creation page");
+              window.optionboxcentretop.value = newExcerpt;
+              window.boxcentretop.value = newPostTitle;
+            }
+        })
+        Button.add(mid + 170, height - 170, 300, 40, "Submit", "make quiz", () => {
+            if(window.boxcentretop.value != makeQuestionData[makeCurrentQuestion]) {
+              makeQuestionData[makeCurrentQuestion] = window.boxcentretop.value
+            }
+            if(window.optionboxcentretop.value != makeAnswerData[makeCurrentQuestion]) {
+              makeAnswerData[makeCurrentQuestion] = window.optionboxcentretop.value
+            }
+            changePage("creation page");
+            window.boxcentretop.value = newPostTitle;
+            window.optionboxcentretop.value = newExcerpt;
+        })
+        let questionAmount = 3;
+        let randomQuestions = [];
+
+        if (selectedPost && questionData[selectedPost - 1].question) {
+            for (var i = 0; i < 5; i++) {
+                if(questionData[selectedPost - 1].answers[i] && !randomQuestions.includes(questionData[selectedPost - 1].answers[i])) {
+                  randomQuestions.push(questionData[selectedPost - 1].answers[i]);
+                }
+            }
+
+            let index = randomQuestions.indexOf(questionData[selectedPost - 1].answers[currentQuestion]);
+            randomQuestions.splice(index, 1);
+            randomQuestions.push(questionData[selectedPost - 1].answers[currentQuestion]);
+            randomQuestions = shuffle(randomQuestions);
+            questionAmount = randomQuestions.length;
+            for (var i = 0; i < questionAmount; i++) {
+                let w3 = width / (questionAmount * 2);
+                let x3 = 0;
+                let h1 = 40;
+                let clicked = i;
+                if (width < 900) {
+                    w3 = width / questionAmount;
+                }
+                if (questionAmount % 2) {
+                    x3 = width / 2 - w3 * (Math.round((questionAmount - 1) / 2) - i)
+                    if (i >= Math.round(questionAmount / 2)) {
+                        x3 = width / 2 + w3 * i - w3 * Math.round((questionAmount - 1) / 2)
+                    }
+                    if ((selectedPost - 1) == 2) { // colour game
+                        Button.add(x3, height / 2 + 130, w3 - 20, h1, randomQuestions[i], "quiz", () => varify(randomQuestions[clicked]), false, randomQuestions[i])
+                    } else {
+                        Button.add(x3, height / 2 + 130, w3 - 20, h1, randomQuestions[i], "quiz", () => varify(randomQuestions[clicked]), false)
+                    }
+                } else {
+                    x3 = width / 2 - w3 * ((questionAmount - 1) / 2 - i)
+                    if (i >= questionAmount / 2) {
+                        x3 = width / 2 + w3 * i - w3 * (questionAmount - 1) / 2
+                    }
+                    Button.add(x3, height / 2 + 130, w3 - 20, h1, randomQuestions[i], "quiz", () => varify(randomQuestions[clicked]), false)
+                }
+            }
+        }
+    }
+    function addBtn(i,vars){
+      if(vars == tags) {
+        var clicked = false
+        Button.add(width / 2 + ((width-(width-860))/vars.length)*i - ((width-(width-860))/vars.length) * Math.floor((vars.length/2)), height / 2 + 250, ((width-(width-860))/vars.length) - 20, 40, vars[i], "creation page",() => {
+          if(vars[i] == "Delete") {
+            selectedTags = []
+          } else {
+            selectedTags.push(vars[i]);
+          }
+        },() => {
+          if(vars[i] == "Delete") {
+            if(selectedTags.length == 0) {
+              return true
+              } else {
+              return false
+            }
+          } else {
+            if(selectedTags.includes(vars[i])){
+              return true
+            } else {
+              return false
+            } 
+          }
+        })
+      } else if(vars == difficulties) {
+        Button.add(width / 2 + ((width-(width-860))/vars.length)*i - ((width-(width-860))/vars.length) * Math.floor((vars.length/2)), height / 2 + 20, ((width-(width-860))/vars.length) - 20, 40, JSON.stringify(i + 1), "make quiz",() => {
+          rating = i + 1;
+        },false)  
+      }else {
+        Button.add(width / 2 + ((width-(width-860))/vars.length)*i - ((width-(width-860))/vars.length) * Math.floor((vars.length/2)), height / 2 + 150, ((width-(width-860))/vars.length) - 20, 40, vars[i].title, "creation page",() => {
+          window.textarea.value += vars[i].txt
+        },false)  
+      }
+        
+    }
+
+    function changePage(page) {
+        if (page == "blog") {
+            //window.history.pushState({}, null, "./?post=" + selectedPost.link);
+        }
+        if (html[currentPage] && html[currentPage].exit) {
+            for (let element of html[currentPage].exit) {
+                element.classList.add("hidden")
+            }
+        }
+
+        if (html[page] && html[page].enter) {
+            for (let element of html[page].enter) {
+                element.classList.remove("hidden")
+            }
+        }
+
+        if (html[page] && html[page].onenter) {
+            html[page].onenter()
+        }
+        if (html[page] && html[page].onexit) {
+            html[page].onexit()
+        }
+
+        previousPage = currentPage
+        currentPage = page
+        mouseDown = false
+        initButtons()
+        clear()
+        drawPage[currentPage]()
+        Button.draw()
+    }
+
+    function trackMouse(e) {
+        createHoverBox()
+        cursor("")
+        mouseX = e.x
+        mouseY = e.y + window.scrollY
+        clear()
+        drawPage[currentPage]()
+        Button.draw()
+    }
+
+    function varify(selected) {
+
+        if (selected.toLowerCase() != questionData[selectedPost - 1].answers[currentQuestion].toLowerCase()) {
+            console.log(selected);
+            wrongQuestions.push(selected);
+            if (mistakes[0].answers && !mistakes[0].answers.includes(selected)) {
+              let inx = currentQuestion;
+              let question = questionData[selectedPost - 1].question[inx];
+              let answer = questionData[selectedPost - 1].answers[inx];
+              let option = questionData[selectedPost - 1].options[inx];
+              mistakesQ.push(question)
+              console.log(mistakesA)
+              mistakesA.push(answer)
+              if (option != undefined) {
+                mistakesO.push(option)                
+              }
+            }
+        } else {
+          correct.push(currentQuestion)
+        }
+        if (currentQuestion >= questionData[selectedPost - 1].question.length - 1) {4
+                                                                     
+            
+            mistakes[0].question = mistakesQ
+            mistakes[0].answers = mistakesA
+            mistakes[0].options = mistakesO
+            localStorage.setItem("mistakes", JSON.stringify(mistakes))
+            currentQuestion = 0;
+            changePage("results")
+                                                                        
+        } else {
+            currentQuestion += 1;
+        }
+        initButtons()
+        drawPage[currentPage]()
+    }
+    let fill = function (r, g, b) {
+        if (g === undefined) {
+          g = r;
+          b = r;
+        }
+        ctx.fillStyle = "rgb(" + r + ", " + g + ", " + b + ")";
+      };
+      let strokeWeight = function (num) {
+        ctx.lineWidth = num;
+      };
+      let stroke = function (r, g, b) {
+        if (g === undefined) {
+          g = r;
+          b = r;
+        }
+        ctx.strokeStyle = "rgb(" + r + ", " + g + ", " + b + ")";
+      };
+      let line = function (x1, y1, x2, y2) {
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+      };
+
+      function text(txt, x, y, h) {
+        h = h || 0;
+
+        let lines = txt.split("\n");
+        for (let i = 0; i < lines.length; i++) {
+          ctx.fillText(lines[i], x, y + h * i);
+        }
+      }
+
+      function processColours(colour) {
+        if (colour == undefined) {
+          colour = "gray";
+        }
+        let clr = [];
+        if (colour == "green") {
+          clr = [34, 139, 34];
+        } else if (colour == "red") {
+          clr = [178, 34, 34];
+        } else if (colour == "blue") {
+          clr = [65, 105, 225];
+        } else if (colour == "purple") {
+          clr = [139, 0, 139];
+        } else if (colour == "gray") {
+          clr = [120, 120, 120];
+        } else if (colour == "yellow") {
+          clr = [204, 204, 0];
+        } else {
+          clr = [120, 120, 120];
+        }
+        return clr;
+      }
+
+      function rect(x, y, w, h, mode = "") {
+        if (mode == "centre") {
+          x = (width - w) / 2;
+        }
+        ctx.fillRect(x, y, w, h);
+      }
+
+      function textSize(size) {
+        ctx.font = size + "px Monospace";
+      }
+
+      function sanitize(text) {
+        const el = document.createElement("div");
+        el.textContent = text;
+        return el.innerHTML;
+      }
+
+      const HAND = "pointer";
+      const CROSS = "crosshair";
+      let cursor = function (type) {
+        canvas.style.cursor = type;
+      };
+
+      const clear = () => ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+      function createHoverBox() {
+        if (hoverBox) {
+          hoverbox.classList.remove("hidden");
+          hoverbox.innerText = boxHoverText;
+          
+          if (mouseY < height / 2) {
+            hoverbox.style.bottom = "";
+            hoverbox.style.top = mouseY + 10 + "px";
+          } else {
+            hoverbox.style.top = "";
+            hoverbox.style.bottom = height - mouseY + 10 + "px";
+          }
+          if (mouseX < width / 2) {
+            hoverbox.style.right = "";
+            hoverbox.style.left = mouseX + 10 + "px";
+          } else {
+            hoverbox.style.left = "";
+            hoverbox.style.right = width - mouseX + 10 + "px";
+          }
+        } else {
+          hoverbox.classList.add("hidden");
+        }
+      }
+      class Button {
+        constructor(
+          x,
+          y,
+          w,
+          h,
+          labels,
+          scenes,
+          callback,
+          disabled,
+          colour,
+          hoverText
+        ) {
+          this.x = x;
+          this.y = y;
+          this.w = w;
+          this.h = h;
+          this.index = 0;
+          this.disabled = disabled || (() => false);
+          this.hoverText =
+            !hoverText || typeof hoverText === "string"
+              ? () => hoverText
+              : hoverText;
+          this.scenes = Array.isArray(scenes) ? scenes : [scenes];
+          this.labels = Array.isArray(labels) ? labels : [labels];
+          this.callback = callback;
+          this.colour = processColours(colour);
+        }
+
+        mouseIsOver() {
+          return (
+            mouseX >= this.x - this.w / 2 &&
+            mouseX <= this.x + this.w / 2 &&
+            mouseY >= this.y - this.h / 2 &&
+            mouseY <= this.y + this.h / 2
+          );
+        }
+
+        draw() {
+          if (!this.scenes.includes(currentPage)) {
+            return;
+          }
+          const hovering = this.mouseIsOver();
+          const disabled = this.disabled();
+          const hoverText = this.hoverText();
+
+          // Outline
+          ctx.beginPath();
+          if (hovering && !disabled) {
+            strokeWeight(7);
+            stroke(255);
+            cursor(HAND);
+          } else {
+            strokeWeight(3);
+            stroke(0);
+          }
+          if (disabled) {
+            fill(60);
+          } else {
+            fill(this.colour[0], this.colour[1], this.colour[2]);
+          }
+
+          ctx.rect(this.x - this.w / 2, this.y - this.h / 2, this.w, this.h);
+          ctx.stroke();
+          ctx.fill();
+
+          // Label
+          fill(255);
+          textSize(16);
+          ctx.textAlign = "center";
+          text(this.labels[this.index], this.x, this.y + this.h / 8);
+
+          if (hovering && hoverText) {
+            boxHoverText = hoverText;
+            hoverBox = true;
+          }
+        }
+
+        click() {
+          if (
+            this.disabled() ||
+            !mouseDown ||
+            !this.scenes.includes(currentPage)
+          ) {
+            return false;
+          }
+
+          if (this.mouseIsOver()) {
+            this.index = (this.index + 1) % this.labels.length;
+            this.callback(this.labels[this.index]);
+            return true;
+          }
+        }
+
+        static draw() {
+          for (const button of Button.all) {
+            button.draw();
+          }
+        }
+
+        static click() {
+          for (const button of Button.all) {
+            if (button.click()) {
+              Button.draw();
+              break;
+            }
+          }
+        }
+
+        static add(
+          x,
+          y,
+          w,
+          h,
+          labels,
+          scenes,
+          callback,
+          disabled,
+          hoverText
+        ) {
+          Button.all.push(
+            new Button(
+              x,
+              y,
+              w,
+              h,
+              labels,
+              scenes,
+              callback,
+              disabled,
+              hoverText
+            )
+          );
+        }
+      }
+      Button.all = [];
+    document.onmousemove = trackMouse
+    document.onkeyup = function(e) {
+        keyCode = e.key;
+        clear()
+        drawPage[currentPage]()
+        Button.draw()
+    }
+    canvas.onmousedown = function(e) {
+        mouseX = e.x
+        mouseY = e.y + window.scrollY
+        mouseDown = true
+        cursor("")
+        Button.click()
+        clear()
+        drawPage[currentPage]()
+        Button.draw()
+    }
+
+    window.boxcentretop.onkeyup = (e) => {
+        initButtons()
+    }
+
+    window.onresize = () => {
+        width = window.innerWidth
+        height = window.innerHeight
+        canvas.width = width
+        canvas.height = height
+        clear()
+        initButtons()
+        drawPage[currentPage]()
+        Button.draw()
+    }
+    initButtons()
+    drawPage[currentPage]()
+    Button.draw()
+    changePage(currentPage);
+}
+
+    </script>
+  </body>
+</html>
